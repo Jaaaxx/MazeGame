@@ -8,20 +8,22 @@ import javalib.worldimages.*;
 
 // represents the weight of the edge between two nodes
 class EdgeWeight {
-  private final int weight; // the random weigh of the edge
+  private final int weight; // the random weight of the edge
+
   public final Node a; // one node in the edge
   public final Node b; // the other node in the edge
 
-  // THE ORDER OF THE NODES DOESNT MATTER A -> B IS HE SAME AS B -> A
 
   // Constructor that takes two nodes and sets them to the a and b fields
   // as well as setting the weight of the edge to a random value between 1 - 100
+  // THE ORDER OF THE NODES DOESNT MATTER A -> B IS HE SAME AS B -> A
   EdgeWeight(Node a, Node b) {
     this.a = a;
     this.b = b;
     this.weight = new Random().nextInt(100);
   }
 
+  // Compares the nodes against each other
   public int compare(EdgeWeight other) {
     return this.weight - other.weight;
   }
@@ -76,50 +78,62 @@ class Node {
     return baseImage;
   }
 
+  // Gets the up node
   public Node getUp() {
     return this.up;
   }
 
+  // Gets the right node
   public Node getRight() {
     return this.right;
   }
 
+  // Gets the down node
   public Node getDown() {
     return this.down;
   }
 
+  // Gets the left node
   public Node getLeft() {
     return this.left;
   }
 
+  // Gets the inverse of wallLeft
   public boolean noWallLeft() {
     return !this.wallLeft;
   }
 
+  // Gets the inverse of wallUp
   public boolean noWallUp() {
     return !this.wallUp;
   }
 
+  // Gets the inverse of wallDown
   public boolean noWallDown() {
     return !this.wallDown;
   }
 
+  // Gets the inverse of wallRight
   public boolean noWallRight() {
     return !this.wallRight;
   }
 
+  // Gets the leftWeight
   public EdgeWeight getLeftWeight() {
     return this.leftWeight;
   }
 
+  // Gets the rightWeight
   public EdgeWeight getRightWeight() {
     return this.rightWeight;
   }
 
+  // Gets the downWeight
   public EdgeWeight getDownWeight() {
     return this.downWeight;
   }
 
+  // Gets the upWeight
   public EdgeWeight getUpWeight() {
     return this.upWeight;
   }
@@ -160,6 +174,7 @@ class Node {
     this.right = right;
   }
 
+  // Sets the weight of the down edge
   public void setEdgeDown() {
     EdgeWeight weight = new EdgeWeight(this, this.down);
     this.downWeight = weight;
@@ -168,6 +183,7 @@ class Node {
     }
   }
 
+  // Sets the weight of the right edge
   public void setEdgeRight() {
     EdgeWeight weight = new EdgeWeight(this, this.right);
     this.rightWeight = weight;
@@ -211,7 +227,6 @@ class Node {
 }
 
 // represents an attempted path to finish a maze
-
 class Path {
   public boolean reachesEnd = false; // true if the path reaches the end point of the maze
   public final ArrayList<String> moves = new ArrayList<>(); // represents the directions of moves
@@ -221,15 +236,12 @@ class Path {
 }
 
 // represents the functionality of a maze game;
-
 class MazeGame {
-  // ....................... PUBLIC FIELDS ................
   public static final int GRID_WIDTH = 50; // width of the cells
   public static final int GRID_HEIGHT = 50; // height of the cells
   public static final int DISPLAY_WIDTH = 1300; // width of the display
   public static final int DISPLAY_HEIGHT = 1300; // height of the display
 
-  // .................... PRIVATE FIELDS ......................
   private Node playerPos; // player position node
   private ArrayList<ArrayList<Node>> maze; // the array list that sets the maze links
   private int r_val = 0; // the red color value (used for random color generation)
@@ -242,74 +254,45 @@ class MazeGame {
   }
 
 
-  private static WorldImage getImageFromMaze(ArrayList<ArrayList<Node>> maze) {
-    Node rowPointer = getBottomLeft(maze);
+  // Gets the WorldImage from a given maze
+  private WorldImage getImageFromMaze() {
+    Node rowPointer = this.getBottomLeft();
     WorldImage image = null;
 
-    // Start: last row of the grid
-    // End: the first row of the grid
-    // What Changes: the row pointer goes up a row
-    // becoming the left-most node in the next upwards row
-    // Why: so that each row can be represented as an image that sits above the
-    // previous
-
     for (int row = GRID_HEIGHT - 1; row >= 0; row--) {
-      WorldImage rowImage = getWorldImageFromRow(rowPointer);
-
+      Node curr = rowPointer;
+      WorldImage rowImage = rowPointer.getImage();
+      for (int col = 0; col < GRID_WIDTH - 1; col++) {
+        curr = curr.getRight();
+        rowImage = new BesideImage(rowImage, curr.getImage());
+      }
       if (image == null) {
         image = rowImage;
       } else {
         image = new AboveImage(rowImage, image);
       }
-
       rowPointer = rowPointer.getUp();
     }
-
     return image;
-  }
-
-  private static WorldImage getWorldImageFromRow(Node rowPointer) {
-    Node curr = rowPointer;
-    WorldImage rowImage = rowPointer.getImage();
-
-    // Start: the left most column index of the grid
-    // End: the right most index of the grid
-    // What Changes: cur is set to its right neighbor and a new beside image
-    // is added to the row image that was initialized to be the rendered value of
-    // the first node in the row
-    // Why: so a complete row of the maze can be rendered
-
-    for (int col = 0; col < GRID_WIDTH - 1; col++) {
-      curr = curr.getRight();
-      rowImage = new BesideImage(rowImage, curr.getImage());
-    }
-    return rowImage;
   }
 
 
   // Creates a maze, setting its links (neighbors, edges, walls), creating its boarders,
   // and setting up its walls
-
-  // CAN USE FUNCTION OBJECTS HERE TO ABSTRACT IMPLEMENTATION FOR RANDOM AND CORRECT MAZES
-  // GO BACK *******
-
-  private static ArrayList<ArrayList<Node>> initializeMaze(String genMethod) {
-    ArrayList<ArrayList<Node>> maze = createGrid();
-    setInitialLinks(maze);
+  private void initializeMaze(String genMethod) {
+    createGrid();
+    setInitialLinks();
     if (genMethod.equals("random")) {
-      createMazeBruteForce(maze);
+      createMazeBruteForce();
     } else {
-      createTrueMaze(maze, algoForTrueMaze(getHashMapNodes(maze), makeEdgeGraph(maze)));
+      createTrueMaze(algoForTrueMaze(getHashMapNodes(), makeEdgeGraph()));
     }
-    setMazeBorders(maze);
-    return maze;
+    setMazeBorders();
   }
 
-  // static method that creates a grid of cells in a maze with a given width and height
-
-  private static ArrayList<ArrayList<Node>> createGrid() {
-    ArrayList<ArrayList<Node>> maze = new ArrayList<>();
-
+  // creates a grid of cells in a maze with a given width and height
+  private void createGrid() {
+    this.maze = new ArrayList<>();
     // Start: a row index of 0
     // End: height - 1
     // What Changes: a new empty row is added to the maze
@@ -317,7 +300,7 @@ class MazeGame {
     // maze and links can be set from there
 
     for (int row = 0; row < MazeGame.GRID_HEIGHT; row++) {
-      maze.add(new ArrayList<>());
+      this.maze.add(new ArrayList<>());
 
       // Start: a column index of 0
       // End: width - 1
@@ -328,23 +311,9 @@ class MazeGame {
 
       for (int col = 0; col < MazeGame.GRID_WIDTH; col++) {
         Node n = new Node();
-        maze.get(row).add(n);
+        this.maze.get(row).add(n);
       }
     }
-
-    return maze;
-  }
-
-  // gets a random order of directions for the brute force solving method
-
-  private static ArrayList<String> getRandomDirectionOrder() {
-    ArrayList<String> dirs = new ArrayList<>();
-    dirs.add("left");
-    dirs.add("right");
-    dirs.add("up");
-    dirs.add("down");
-    Collections.shuffle(dirs);
-    return dirs;
   }
 
   // the helper method for the DFS through the maze
@@ -457,8 +426,8 @@ class MazeGame {
   // and a path with only current in its visited as the inputed path
 
   private Path getValidPathDepthFirst() {
-    Node start = getTopLeft(this.maze);
-    Node goal = getBottomRight(this.maze);
+    Node start = this.getTopLeft();
+    Node goal = this.getBottomRight();
 
     Path path = new Path();
     path.visited.add(start);
@@ -469,8 +438,8 @@ class MazeGame {
 
   // gets the valid breadth first path
   private Path getValidPathBreadthFirst() {
-    Node start = getTopLeft(this.maze);
-    Node end = getBottomRight(this.maze);
+    Node start = this.getTopLeft();
+    Node end = this.getBottomRight();
 
     Path path = new Path();
     path.visited.add(start);
@@ -522,16 +491,23 @@ class MazeGame {
   // cool so it will be a little less marked up)
 
   private Path getValidPathBruteForce() {
-    Node cur = getTopLeft(this.maze);
+    Node cur = this.getTopLeft();
     int foundPaths = 0;
     Path path;
 
-    while (foundPaths++ < 100000 && cur != getBottomRight(this.maze)) {
+    while (foundPaths++ < 100000 && cur != this.getBottomRight()) {
       path = new Path();
-      cur = getTopLeft(this.maze);
-      while (cur != getBottomRight(this.maze)) {
+      cur = this.getTopLeft();
+      while (cur != this.getBottomRight()) {
         path.visited.add(cur);
-        ArrayList<String> dirs = getRandomDirectionOrder();
+
+        // Randomizes direction order
+        ArrayList<String> dirs = new ArrayList<>();
+        dirs.add("left");
+        dirs.add("right");
+        dirs.add("up");
+        dirs.add("down");
+        Collections.shuffle(dirs);
 
         boolean stuck = true;
         while (!dirs.isEmpty() && stuck) {
@@ -566,7 +542,7 @@ class MazeGame {
           break;
         }
       }
-      if (cur == getBottomRight(maze)) {
+      if (cur == this.getBottomRight()) {
         path.reachesEnd = true;
         return path;
       }
@@ -580,11 +556,11 @@ class MazeGame {
 
   private void colorPath(Path path) {
     if (path == null) {
-      setNodeColors(this.maze);
-      setWallColors(this.maze, 120);
+      setNodeColors();
+      setWallColors(120);
     } else {
       ArrayList<String> dirs = path.moves;
-      Node cur = getTopLeft(this.maze);
+      Node cur = this.getTopLeft();
       cur.color = Color.YELLOW;
       while (!dirs.isEmpty()) {
         String dir = dirs.removeFirst();
@@ -606,8 +582,8 @@ class MazeGame {
   // resets the path to its original colors and the wall colors to be black
   // not private, because path reset is a function of a key
   private void resetPath() {
-    setRandomColors(this.maze, this.r_val, this.g_val, this.b_val);
-    setWallColors(this.maze, 0);
+    setRandomColors(this.r_val, this.g_val, this.b_val);
+    setWallColors(0);
   }
 
   // Sets custom, randomized, light background colors to differentiate mazes
@@ -621,15 +597,15 @@ class MazeGame {
     this.g_val = g;
     this.b_val = b;
 
-    setRandomColors(maze, r, g, b);
+    setRandomColors(r, g, b);
   }
 
   // Sets custom, randomized, light background colors to differentiate mazes
 
-  private static void setRandomColors(ArrayList<ArrayList<Node>> maze, int r, int g, int b) {
+  private void setRandomColors(int r, int g, int b) {
     for (int row = 0; row < GRID_HEIGHT; row++) {
       for (int col = 0; col < GRID_WIDTH; col++) {
-        Node cur = maze.get(row).get(col);
+        Node cur = this.maze.get(row).get(col);
         if (row == 0 && col == 0) {
           cur.color = Color.YELLOW;
         } else if (row == GRID_HEIGHT - 1 && col == GRID_WIDTH - 1) {
@@ -644,10 +620,10 @@ class MazeGame {
 
   // sets the colors of all the nodes in the maze
 
-  private static void setNodeColors(ArrayList<ArrayList<Node>> maze) {
+  private void setNodeColors() {
     for (int row = 0; row < GRID_HEIGHT; row++) {
       for (int col = 0; col < GRID_WIDTH; col++) {
-        Node cur = maze.get(row).get(col);
+        Node cur = this.maze.get(row).get(col);
         cur.color = new Color(150, 100, 100);
       }
     }
@@ -655,10 +631,10 @@ class MazeGame {
 
   // sets the colors of all the walls in the maze
 
-  private static void setWallColors(ArrayList<ArrayList<Node>> maze, int r) {
+  private void setWallColors(int r) {
     for (int row = 0; row < GRID_HEIGHT; row++) {
       for (int col = 0; col < GRID_WIDTH; col++) {
-        Node cur = maze.get(row).get(col);
+        Node cur = this.maze.get(row).get(col);
         cur.wallColor = new Color(r, 0, 0);
       }
     }
@@ -666,10 +642,10 @@ class MazeGame {
 
   // sets the borders of the maze (the walls on the outside)
 
-  private static void setMazeBorders(ArrayList<ArrayList<Node>> maze) {
+  private void setMazeBorders() {
     for (int row = 0; row < GRID_HEIGHT; row++) {
       for (int col = 0; col < GRID_WIDTH; col++) {
-        Node cur = maze.get(row).get(col);
+        Node cur = this.maze.get(row).get(col);
         if (row == 0) {
           cur.wallUp(true);
         }
@@ -686,10 +662,10 @@ class MazeGame {
     }
   }
 
-  private static void clearWalls(ArrayList<ArrayList<Node>> maze) {
+  private void clearWalls() {
     for (int row = 0; row < GRID_HEIGHT; row++) {
       for (int col = 0; col < GRID_WIDTH; col++) {
-        Node cur = maze.get(row).get(col);
+        Node cur = this.maze.get(row).get(col);
         cur.wallUp(false);
         cur.wallDown(false);
         cur.wallLeft(false);
@@ -701,11 +677,11 @@ class MazeGame {
   // creates a random maze (not well-formed but used to test our rendering and basic
   // functionality)
 
-  private static void createMazeBruteForce(ArrayList<ArrayList<Node>> maze) {
-    clearWalls(maze);
+  private void createMazeBruteForce() {
+    this.clearWalls();
     for (int row = 0; row < GRID_HEIGHT; row++) {
       for (int col = 0; col < GRID_WIDTH; col++) {
-        Node cur = maze.get(row).get(col);
+        Node cur = this.maze.get(row).get(col);
         if (new Random().nextInt(5) == 1) {
           cur.wallUp(true);
         }
@@ -722,10 +698,10 @@ class MazeGame {
     }
   }
 
-  private static void createTrueMaze(ArrayList<ArrayList<Node>> maze, HashSet<EdgeWeight> edges) {
+  private void createTrueMaze(HashSet<EdgeWeight> edges) {
     for (int row = 0; row < GRID_HEIGHT; row++) {
       for (int col = 0; col < GRID_WIDTH; col++) {
-        Node cur = maze.get(row).get(col);
+        Node cur = this.maze.get(row).get(col);
         if (edges.contains(cur.getUpWeight())) {
           cur.wallUp(false);
         }
@@ -742,8 +718,8 @@ class MazeGame {
     }
   }
 
-  private static HashSet<EdgeWeight> algoForTrueMaze(HashMap<Node, Node> nodes,
-                                                     ArrayList<EdgeWeight> edges) {
+  private HashSet<EdgeWeight> algoForTrueMaze(HashMap<Node, Node> nodes,
+                                              ArrayList<EdgeWeight> edges) {
     HashSet<EdgeWeight> finalSet = new HashSet<>();
     int i = 1;
     while (i < MazeGame.GRID_WIDTH * MazeGame.GRID_HEIGHT) {
@@ -764,29 +740,29 @@ class MazeGame {
 
   // sets the neighbors and edge weights of all of the nodes in the maze
 
-  private static void setInitialLinks(ArrayList<ArrayList<Node>> maze) {
+  private void setInitialLinks() {
     // sets horizontal links
     for (int row = 0; row < GRID_HEIGHT; row++) {
       for (int col = 1; col < GRID_WIDTH - 1; col++) {
-        Node cur = maze.get(row).get(col);
-        cur.setLeft(maze.get(row).get(col - 1));
-        cur.setRight(maze.get(row).get(col + 1));
+        Node cur = this.maze.get(row).get(col);
+        cur.setLeft(this.maze.get(row).get(col - 1));
+        cur.setRight(this.maze.get(row).get(col + 1));
       }
     }
 
     // sets vertical links
     for (int row = 1; row < GRID_HEIGHT - 1; row++) {
       for (int col = 0; col < GRID_WIDTH; col++) {
-        Node cur = maze.get(row).get(col);
-        cur.setUp(maze.get(row - 1).get(col));
-        cur.setDown(maze.get(row + 1).get(col));
+        Node cur = this.maze.get(row).get(col);
+        cur.setUp(this.maze.get(row - 1).get(col));
+        cur.setDown(this.maze.get(row + 1).get(col));
       }
     }
 
     // edge weights
     for (int row = 0; row < GRID_HEIGHT; row++) {
       for (int col = 0; col < GRID_WIDTH; col++) {
-        Node cur = maze.get(row).get(col);
+        Node cur = this.maze.get(row).get(col);
         if (row < GRID_HEIGHT - 1) {
           cur.setEdgeDown();
         }
@@ -801,7 +777,7 @@ class MazeGame {
   // gets all the unique edge weights in the maze, sorts them, and returns them as a
   // HashMap with identical pairings
 
-  private static ArrayList<EdgeWeight> makeEdgeGraph(ArrayList<ArrayList<Node>> maze) {
+  private ArrayList<EdgeWeight> makeEdgeGraph() {
 
     // gets all the unique pairings
 
@@ -809,7 +785,7 @@ class MazeGame {
 
     for (int row = 0; row < GRID_HEIGHT; row++) {
       for (int col = 0; col < GRID_WIDTH; col++) {
-        Node cur = maze.get(row).get(col);
+        Node cur = this.maze.get(row).get(col);
         if (row < GRID_HEIGHT - 1) {
           edges.add(cur.getDownWeight());
         }
@@ -826,12 +802,12 @@ class MazeGame {
     return edges;
   }
 
-  private static HashMap<Node, Node> getHashMapNodes(ArrayList<ArrayList<Node>> maze) {
+  private HashMap<Node, Node> getHashMapNodes() {
     HashMap<Node, Node> nodes = new HashMap<>();
 
     for (int row = 0; row < GRID_HEIGHT; row++) {
       for (int col = 0; col < GRID_WIDTH; col++) {
-        Node cur = maze.get(row).get(col);
+        Node cur = this.maze.get(row).get(col);
         nodes.put(cur, cur);
       }
     }
@@ -840,20 +816,20 @@ class MazeGame {
 
   // gets the bottom left node in the maze
 
-  private static Node getBottomLeft(ArrayList<ArrayList<Node>> maze) {
-    return maze.get(GRID_HEIGHT - 1).getFirst();
+  private Node getBottomLeft() {
+    return this.maze.get(GRID_HEIGHT - 1).getFirst();
   }
 
   // gets the top left node in the maze
 
-  private static Node getTopLeft(ArrayList<ArrayList<Node>> maze) {
-    return maze.getFirst().getFirst();
+  private Node getTopLeft() {
+    return this.maze.getFirst().getFirst();
   }
 
   // gets the bottom right node in the maze
 
-  private static Node getBottomRight(ArrayList<ArrayList<Node>> maze) {
-    return maze.get(GRID_HEIGHT - 1).get(GRID_WIDTH - 1);
+  private Node getBottomRight() {
+    return this.maze.get(GRID_HEIGHT - 1).get(GRID_WIDTH - 1);
   }
 
 
@@ -863,18 +839,15 @@ class MazeGame {
   // gets the completed image of the maze for big bang display
 
   public WorldImage getImage() {
-    return getImageFromMaze(this.maze);
+    return getImageFromMaze();
   }
 
-  // EFFECT: sets the maze field top be the result of the initializeMaze static method
-  // initializes a random maze and sets the color of the nodes to be
+  // EFFECT: initializes a random maze and sets the color of the nodes to be
   // generally similar pale color to get a cool look
-
   public void loadLevel(String genMethod) {
-    this.maze = initializeMaze(genMethod);
+    initializeMaze(genMethod);
     this.randomizeMazeColors();
-
-    this.playerPos = getTopLeft(this.maze);
+    this.playerPos = this.getTopLeft();
     this.playerPos.color = Color.CYAN;
   }
 
@@ -917,7 +890,7 @@ class MazeGame {
       }
     }
 
-    if (this.playerPos == getBottomRight(this.maze)) {
+    if (this.playerPos == this.getBottomRight()) {
       this.gameOverScreen(); // shows a final scene
     } else {
       this.playerPos.color = Color.CYAN;
