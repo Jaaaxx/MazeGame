@@ -16,7 +16,7 @@ class EdgeWeight {
 
   // Constructor that takes two nodes and sets them to the a and b fields
   // as well as setting the weight of the edge to a random value between 1 - 100
-  // THE ORDER OF THE NODES DOESNT MATTER A -> B IS HE SAME AS B -> A
+  // THE ORDER OF THE NODES DOESN'T MATTER A -> B IS HE SAME AS B -> A
   EdgeWeight(Node a, Node b) {
     this.a = a;
     this.b = b;
@@ -40,7 +40,7 @@ class Node {
   private boolean wallUp = true; // if there is a wall in the up direction
   private boolean wallDown = true; // if there is a wall in the down direction
   private EdgeWeight leftWeight; // the edge connecting this node to its left neighbor
-  private EdgeWeight rightWeight; // the edge connecting this nodes to its right neighbor
+  private EdgeWeight rightWeight; // the edge connecting these nodes to its right neighbor
   private EdgeWeight upWeight; // the edge connecting this node to its up neighbor
   private EdgeWeight downWeight; // the edge connecting this node to its down neighbor
 
@@ -423,7 +423,7 @@ class MazeGame {
 
 
   // calls the depth first search helper with the top left as the current,
-  // and a path with only current in its visited as the inputed path
+  // and a path with only current in its visited as the inputted path
 
   private Path getValidPathDepthFirst() {
     Node start = this.getTopLeft();
@@ -483,7 +483,7 @@ class MazeGame {
 
   // displays a game over screen once the manual end of maze has been found
   private void gameOverScreen() {
-    this.colorPath(null);
+    this.colorPath(null, Color.RED);
   }
 
   // tries 10000 times to get a valid path via brute force by using
@@ -554,7 +554,7 @@ class MazeGame {
   // if no valid path could be found and sets the nodes in the path to be red if one
   // is found
 
-  private void colorPath(Path path) {
+  private void colorPath(Path path, Color color) {
     if (path == null) {
       setNodeColors();
       setWallColors(120);
@@ -573,15 +573,17 @@ class MazeGame {
         } else if (dir.equals("down")) {
           cur = cur.getDown();
         }
-        cur.color = Color.RED;
+        if (cur == null) {
+          return;
+        }
+        cur.color = color;
       }
       cur.color = Color.GREEN;
     }
   }
 
   // resets the path to its original colors and the wall colors to be black
-  // not private, because path reset is a function of a key
-  private void resetPath() {
+  private void resetPathColors() {
     setRandomColors(this.r_val, this.g_val, this.b_val);
     setWallColors(0);
   }
@@ -611,11 +613,15 @@ class MazeGame {
         } else if (row == GRID_HEIGHT - 1 && col == GRID_WIDTH - 1) {
           cur.color = Color.GREEN;
         } else {
-          cur.color = new Color(new Random().nextInt(15) + r,
-                  new Random().nextInt(15) + g, new Random().nextInt(15) + b);
+          cur.color = getRandomNodeColor(r, g, b);
         }
       }
     }
+  }
+
+  private Color getRandomNodeColor(int r, int g, int b) {
+    return new Color(new Random().nextInt(15) + r,
+            new Random().nextInt(15) + g, new Random().nextInt(15) + b);
   }
 
   // sets the colors of all the nodes in the maze
@@ -676,7 +682,6 @@ class MazeGame {
 
   // creates a random maze (not well-formed but used to test our rendering and basic
   // functionality)
-
   private void createMazeBruteForce() {
     this.clearWalls();
     for (int row = 0; row < GRID_HEIGHT; row++) {
@@ -698,6 +703,7 @@ class MazeGame {
     }
   }
 
+  // Creates a maze using Kruskal's algorithm
   private void createTrueMaze(HashSet<EdgeWeight> edges) {
     for (int row = 0; row < GRID_HEIGHT; row++) {
       for (int col = 0; col < GRID_WIDTH; col++) {
@@ -738,7 +744,7 @@ class MazeGame {
   // EFFECT: sets the left, right, up, and down fields of the nodes in the maze
   // creates and sets the edge weights
 
-  // sets the neighbors and edge weights of all of the nodes in the maze
+  // sets the neighbors and edge weights of all the nodes in the maze
 
   private void setInitialLinks() {
     // sets horizontal links
@@ -853,8 +859,8 @@ class MazeGame {
 
   // Finds a path and colors it for use in big bang key commands
   public void pathFindAndColor(String algo) {
+    this.resetPathColors();
     Path foundPath;
-    this.resetPath();
     if (algo.equals("breadthFirst")) {
       foundPath = getValidPathBreadthFirst();
     } else if (algo.equals("depthFirst")) {
@@ -863,7 +869,7 @@ class MazeGame {
       // Default to brute force pathfinding
       foundPath = getValidPathBruteForce();
     }
-    this.colorPath(foundPath);
+    this.colorPath(foundPath, Color.RED);
   }
 
 
@@ -871,7 +877,8 @@ class MazeGame {
   // given direction if it is valid for use in big bang key commands
 
   public void movePlayerPath(String dir) {
-    this.resetPath();
+    this.resetPathColors();
+
     if (dir.equals("left")) {
       if (this.playerPos.noWallLeft()) {
         this.playerPos = this.playerPos.getLeft();
